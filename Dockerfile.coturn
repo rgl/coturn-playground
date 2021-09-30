@@ -1,0 +1,8 @@
+FROM coturn/coturn:4.5.2-r5
+USER root:root
+RUN apt-get update && \
+    apt-get install -y sqlite3 && \
+    rm -rf /var/lib/apt/lists/*
+USER nobody:nogroup
+CMD ["--"]
+#CMD ["--external-ip=$(detect-external-ip)"]

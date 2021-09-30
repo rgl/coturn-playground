@@ -1,0 +1,73 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Install Docker compose
+        run: |
+          set -euxo pipefail
+          docker_compose_version='v2.0.0'
+          # download.
+          # see https://github.com/docker/compose/releases
+          # see https://docs.docker.com/compose/cli-command/#install-on-linux
+          docker_compose_url="https://github.com/docker/compose/releases/download/$docker_compose_version/docker-compose-linux-amd64"
+          wget -qO /tmp/docker-compose "$docker_compose_url"
+          # install.
+          install -d ~/.docker/cli-plugins
+          install -m 555 /tmp/docker-compose ~/.docker/cli-plugins
+          rm /tmp/docker-compose
+          docker compose version
+      - name: Build (Linux)
+        run: |
+          set -euxo pipefail
+          mkdir -p tmp
+          docker compose build
+          docker build --tag turn-ping turn-ping
+          cd tmp
+          docker run --rm --entrypoint /bin/cat turn-ping /app/turn-ping >turn-ping
+          chmod +x turn-ping
+          tar czf turn-ping-linux.tgz turn-ping
+      - name: Build (Windows)
+        run: |
+          set -euxo pipefail
+          mkdir -p tmp
+          pushd turn-ping
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s" -o ../tmp/turn-ping.exe
+          popd
+          cd tmp
+          tar czf turn-ping-windows.tgz turn-ping.exe
+      - name: Test
+        run: |
+          set -euxo pipefail
+          # replace the ip address.
+          ip_address="$(ip addr show eth0 | perl -n -e'/ inet (\d+(\.\d+)+)/ && print $1')"
+          sed -i -E "s,(external-ip|listening-ip)=.+,\1=$ip_address,g" turnserver.conf
+          # start coturn in background.
+          docker compose up -d
+          docker compose run coturn sqlite3 /var/lib/coturn/turndb .schema
+          docker compose run coturn turnadmin --add-admin --realm coturn --user admin --password admin
+          docker compose run coturn turnadmin --add --realm coturn --user alice --password alice
+          docker compose run coturn turnadmin --list-admin
+          docker compose run coturn turnadmin --list
+          # test.
+          docker run --rm turn-ping -host $ip_address -port 3478 -realm coturn -user alice=alice -protocol tcp -count 2
+          docker run --rm turn-ping -host $ip_address -port 3478 -realm coturn -user alice=alice -protocol udp -count 2
+          # show logs.
+          docker compose logs
+          # teardown.
+          docker compose down
+      - name: Archive Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: turn-ping-artifacts
+          path: |
+            tmp/*.tgz
