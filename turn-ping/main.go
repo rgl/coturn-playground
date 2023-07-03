@@ -1,7 +1,7 @@
-// NB this originaly came from:
-//    	https://github.com/pion/turn/blob/13867664acbcf7a2b55f561fc4ed61b46638438d/examples/turn-client/tcp/main.go
-//    	https://github.com/pion/turn/blob/13867664acbcf7a2b55f561fc4ed61b46638438d/examples/turn-client/udp/main.go
-//     	https://github.com/pion/turn/tree/13867664acbcf7a2b55f561fc4ed61b46638438d/examples#turn-client
+// NB this originally came from:
+//    	https://github.com/pion/turn/blob/v2.1.2/examples/turn-client/tcp/main.go
+//    	https://github.com/pion/turn/blob/v2.1.2/examples/turn-client/udp/main.go
+//     	https://github.com/pion/turn/tree/v2.1.2/examples#turn-client
 
 package main
 
@@ -47,7 +47,7 @@ func main() {
 		// Dial TURN Server
 		tcpConn, err := net.Dial("tcp", turnServerAddr)
 		if err != nil {
-			panic(err)
+			log.Panicf("Failed to connect to TURN server: %s", err)
 		}
 		// wrap net.Conn in a STUNConn.
 		// This allows us to simulate datagram based communication over a net.Conn
@@ -56,11 +56,11 @@ func main() {
 		// TURN client won't create a local listening socket by itself.
 		udpConn, err := net.ListenPacket("udp4", "0.0.0.0:0")
 		if err != nil {
-			panic(err)
+			log.Panicf("Failed to listen: %s", err)
 		}
 		defer func() {
 			if closeErr := udpConn.Close(); closeErr != nil {
-				panic(closeErr)
+				log.Fatalf("Failed to close connection: %s", closeErr)
 			}
 		}()
 		conn = udpConn
@@ -79,14 +79,14 @@ func main() {
 
 	client, err := turn.NewClient(cfg)
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to create TURN client: %s", err)
 	}
 	defer client.Close()
 
 	// Start listening on the conn provided.
 	err = client.Listen()
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to listen: %s", err)
 	}
 
 	// Allocate a relay socket on the TURN server. On success, it
@@ -94,11 +94,11 @@ func main() {
 	// socket.
 	relayConn, err := client.Allocate()
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to allocate: %s", err)
 	}
 	defer func() {
 		if closeErr := relayConn.Close(); closeErr != nil {
-			panic(closeErr)
+			log.Fatalf("Failed to close connection: %s", closeErr)
 		}
 	}()
 
@@ -106,10 +106,10 @@ func main() {
 	// address assigned on the TURN server.
 	log.Printf("relayed-address=%s", relayConn.LocalAddr().String())
 
-	// Perform a ping test agaist the relayConn we have just allocated.
+	// Perform a ping test against the relayConn we have just allocated.
 	err = doPingTest(*count, client, relayConn)
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to ping: %s", err)
 	}
 }
 
@@ -126,11 +126,11 @@ func doPingTest(count int, client *turn.Client, relayConn net.PacketConn) error 
 	// Set up pinger socket (pingerConn)
 	pingerConn, err := net.ListenPacket("udp4", "0.0.0.0:0")
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to listen: %s", err)
 	}
 	defer func() {
 		if closeErr := pingerConn.Close(); closeErr != nil {
-			panic(closeErr)
+			log.Panicf("Failed to close connection: %s", closeErr)
 		}
 	}()
 
