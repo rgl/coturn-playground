@@ -2,24 +2,24 @@ name: build
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: 1.17
       - name: Install Docker compose
         run: |
           set -euxo pipefail
-          docker_compose_version='v2.0.0'
+          docker_compose_version='v2.19.1'
           # download.
           # see https://github.com/docker/compose/releases
           # see https://docs.docker.com/compose/cli-command/#install-on-linux
-          docker_compose_url="https://github.com/docker/compose/releases/download/$docker_compose_version/docker-compose-linux-amd64"
+          docker_compose_url="https://github.com/docker/compose/releases/download/$docker_compose_version/docker-compose-linux-$(uname -m)"
           wget -qO /tmp/docker-compose "$docker_compose_url"
           # install.
           install -d ~/.docker/cli-plugins
@@ -53,11 +53,11 @@ jobs:
           sed -i -E "s,(external-ip|listening-ip)=.+,\1=$ip_address,g" turnserver.conf
           # start coturn in background.
           docker compose up -d
-          docker compose run coturn sqlite3 /var/lib/coturn/turndb .schema
-          docker compose run coturn turnadmin --add-admin --realm coturn --user admin --password admin
-          docker compose run coturn turnadmin --add --realm coturn --user alice --password alice
-          docker compose run coturn turnadmin --list-admin
-          docker compose run coturn turnadmin --list
+          docker compose exec coturn sqlite3 /var/lib/coturn/turndb .schema
+          docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --add-admin --realm coturn --user admin --password admin
+          docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --add --realm coturn --user alice --password alice
+          docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --list-admin
+          docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --list
           # test.
           docker run --rm turn-ping -host $ip_address -port 3478 -realm coturn -user alice=alice -protocol tcp -count 2
           docker run --rm turn-ping -host $ip_address -port 3478 -realm coturn -user alice=alice -protocol udp -count 2

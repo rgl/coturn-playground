@@ -1,4 +1,6 @@
-FROM coturn/coturn:4.5.2-r5
+# see https://hub.docker.com/r/coturn/coturn
+# see https://github.com/coturn/coturn/tree/docker/4.6.2-r3/docker/coturn
+FROM coturn/coturn:4.6.2-r3
 USER root:root
 RUN apt-get update && \
     apt-get install -y sqlite3 && \

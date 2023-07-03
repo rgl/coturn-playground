@@ -19,11 +19,11 @@ docker compose up --build
 In another shell, initialize it:
 
 ```bash
-docker compose run coturn sqlite3 /var/lib/coturn/turndb .schema
-docker compose run coturn turnadmin --add-admin --realm coturn --user admin --password admin
-docker compose run coturn turnadmin --add --realm coturn --user alice --password alice
-docker compose run coturn turnadmin --list-admin
-docker compose run coturn turnadmin --list
+docker compose exec coturn sqlite3 /var/lib/coturn/turndb .schema
+docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --add-admin --realm coturn --user admin --password admin
+docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --add --realm coturn --user alice --password alice
+docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --list-admin
+docker compose exec coturn turnadmin --userdb /var/lib/coturn/turndb --list
 ```
 
 And try it:
@@ -43,6 +43,12 @@ Also try it with the [Trickle ICE WebRTC sample](https://webrtc.github.io/sample
 * IceTransports value: `relay`
 
 The setup is working when you see a `rtp relay` line.
+
+Destroy everything:
+
+```bash
+docker compose down --remove-orphans --volumes
+```
 
 # iptables rules
 
@@ -73,14 +79,11 @@ reboot
 
 * Instead of configuring all the users in the coturn server using `lt-cred-mech`, you might want to use `use-auth-secret` and `static-auth-secret`, and have your signaling server generate temporary credentials.
 * You might want to prevent coturn from relaying traffic to your internal network by using `denied-peer-ip` and `allowed-peer-ip`.
-* Coturn issues:
-  * [#699 Could not start Prometheus collector!](https://github.com/coturn/coturn/issues/699)
-  * [#830 Bad configuration format: no-rfc5780](https://github.com/coturn/coturn/issues/830)
 
 # References
 
 * [coturn server](https://github.com/coturn/coturn)
-  * [turnserver.conf](https://github.com/coturn/coturn/blob/docker/4.5.2-r3/examples/etc/turnserver.conf)
+  * [turnserver.conf](https://github.com/coturn/coturn/blob/docker/4.6.2-r3/examples/etc/turnserver.conf)
 * [Configuring a Turn Server](https://matrix-org.github.io/synapse/develop/turn-howto.html)
 * [Configuring coTURN](https://nextcloud-talk.readthedocs.io/en/turn_doc/TURN/)
 * [WebRTC For The Curious](https://webrtcforthecurious.com/)
