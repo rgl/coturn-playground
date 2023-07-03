@@ -1,5 +1,7 @@
 # About
 
+[![build](https://github.com/rgl/coturn-playground/actions/workflows/build.yml/badge.svg)](https://github.com/rgl/coturn-playground/actions/workflows/build.yml)
+
 This is a [coturn](https://github.com/coturn/coturn) playground for playing with [Session Traversal Utilities for NAT (STUN)](https://en.wikipedia.org/wiki/STUN) and [Traversal Using Relays around NAT (TURN)](https://en.wikipedia.org/wiki/Traversal_Using_Relays_around_NAT).
 
 # Usage
